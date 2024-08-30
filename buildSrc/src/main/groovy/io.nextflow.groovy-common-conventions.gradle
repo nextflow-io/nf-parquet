@@ -19,12 +19,12 @@ java {
 }
 
 compileJava {
-    options.release.set(11)
+    options.release.set(17)
 }
 
 tasks.withType(GroovyCompile) {
-    sourceCompatibility = '11'
-    targetCompatibility = '11'
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
 }
 
 tasks.withType(Test) {

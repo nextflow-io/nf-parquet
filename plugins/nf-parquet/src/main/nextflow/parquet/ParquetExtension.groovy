@@ -1,5 +1,8 @@
 package nextflow.parquet
 
+import nextflow.plugin.extension.Factory
+import nextflow.plugin.extension.Function
+
 import java.nio.file.Path
 
 import groovy.transform.CompileStatic
@@ -12,18 +15,16 @@ import nextflow.extension.CH
 import nextflow.extension.DataflowHelper
 import nextflow.plugin.extension.Operator
 import nextflow.plugin.extension.PluginExtensionPoint
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path as HadoopPath
-import org.apache.parquet.example.data.Group
-import org.apache.parquet.example.data.simple.convert.GroupRecordConverter
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.hadoop.util.HadoopInputFile
-import org.apache.parquet.io.ColumnIOFactory
+
+import com.jerolba.carpet.CarpetReader
+import com.jerolba.carpet.CarpetWriter
+import org.apache.parquet.hadoop.ParquetFileWriter
 
 /**
  * Implements extensions for reading and writing Parquet files.
  *
  * @author Ben Sherman <bentshermann@gmail.com>
+ * @author Jorge Aguilera <jorge@edn.es>
  */
 @Slf4j
 @CompileStatic
@@ -37,14 +38,14 @@ class ParquetExtension extends PluginExtensionPoint {
     }
 
     /**
-     * Load each Parquet file in a source channel, emitting each row as a separate item.
+     * Load a Parquet file emitting each row as a separate item.
      *
      * @param path
      */
     @Operator
-    DataflowWriteChannel splitParquet(DataflowReadChannel source) {
+    DataflowWriteChannel splitParquet(DataflowReadChannel source, Map params=[:]) {
         final target = CH.create()
-        final splitter = new ParquetSplitter(target)
+        final splitter = new ParquetSplitter(target, params)
 
         final onNext = { it -> splitter.apply(it) }
         final onComplete = { target << Channel.STOP }
@@ -55,32 +56,25 @@ class ParquetExtension extends PluginExtensionPoint {
 
     class ParquetSplitter {
         private DataflowWriteChannel target
+        private Class<Record> clazz
 
-        ParquetSplitter(DataflowWriteChannel target) {
+        ParquetSplitter(DataflowWriteChannel target, Map params) {
             this.target = target
+            if( params.record ) {
+                if (!(params.record instanceof Class<Record>)) {
+                    throw new IllegalArgumentException("A Record.class is required. Class provided $params.record")
+                }
+                this.clazz = params.record as Class<Record>
+            }
         }
 
         void apply(Object source) {
             try {
+                log.debug "Start reading $source, with projection ${clazz ?: 'raw'}"
                 // create parquet reader
-                final reader = ParquetFileReader.open(HadoopInputFile.fromPath(toHadoopPath(source), new Configuration()))
-                final schema = reader.getFooter().getFileMetaData().getSchema()
-                final fields = schema.getFields()
-
-                // read each row from parquet file
-                def pages = null
-                try {
-                    while( (pages=reader.readNextRowGroup()) != null ) {
-                        final rows = pages.getRowCount()
-                        final columnIO = new ColumnIOFactory().getColumnIO(schema)
-                        final recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema))
-
-                        for( int i = 0; i < rows; i++ )
-                            target << fetchRow(recordReader.read())
-                    }
-                }
-                finally {
-                    reader.close()
+                final reader = new CarpetReader(toFile(source), clazz ?: Map)
+                for (def record : reader) {
+                    target << record
                 }
             }
             catch( IOException e ) {
@@ -88,33 +82,14 @@ class ParquetExtension extends PluginExtensionPoint {
             }
         }
 
-        private HadoopPath toHadoopPath(Object source) {
-            if( source instanceof String )
-                new HadoopPath((String)source)
-            else if( source instanceof Path )
-                new HadoopPath(((Path)source).toUriString())
-            else
-                throw new IllegalArgumentException("Invalid input for splitParquet operator: ${source}")
-        }
-
-        private Map fetchRow(Group group) {
-            def result = [:]
-
-            final fieldCount = group.getType().getFieldCount()
-            for( int field = 0; field < fieldCount; field++ ) {
-                final valueCount = group.getFieldRepetitionCount(field)
-                final fieldType = group.getType().getType(field)
-                final fieldName = fieldType.getName()
-
-                for( int index = 0; index < valueCount; index++ )
-                    if( fieldType.isPrimitive() ) {
-                        println "${fieldName} ${group.getValueToString(field, index)}"
-                        result[fieldName] = group.getValueToString(field, index)
-                    }
+        private File toFile(Object source){
+            return switch( source ){
+                case {it instanceof String}->Path.of(source as String).toFile()
+                case {it instanceof Path} -> (source as Path).toFile()
+                default->throw new IllegalArgumentException("Invalid input for splitParquet operator: ${source}")
             }
-
-            return result
         }
+
     }
 
     /**
