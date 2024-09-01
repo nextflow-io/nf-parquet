@@ -37,7 +37,7 @@ class PluginTest extends Dsl2Spec{
                         return new Manifest(input)
                     }
                     protected Path getManifestPath(Path pluginPath) {
-                        return pluginPath.resolve('build/tmp/jar/MANIFEST.MF')
+                        return pluginPath.resolve('build/resources/main/META-INF/MANIFEST.MF')
                     }
                 }
             }
@@ -60,6 +60,38 @@ class PluginTest extends Dsl2Spec{
         def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
         then:
         result.val == 'hi!'
+        result.val == Channel.STOP
+    }
+
+    def 'should parse a parquet file in raw mode'(){
+        when:
+        def path = getClass().getResource('/test.parquet').toURI().path
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+        channel.fromPath("$path").splitParquet() 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val == [id:1, name:"test2", sizell:10, value:0.010838246310055144, percentile:0.28001529169191186]
+        result.val == Channel.STOP
+    }
+
+    def 'should parse a projection'(){
+        when:
+        def path = getClass().getResource('/test.parquet').toURI().path
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        record SingleRecord(long id, String name) {
+        }
+
+        channel.fromPath("$path").splitParquet( [record:SingleRecord] ) 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val.id == 1
         result.val == Channel.STOP
     }
 
