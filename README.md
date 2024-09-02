@@ -29,7 +29,7 @@ In case you want to read only a subset
 of fields (a projection) you can provide a java Record class with the fields you want to read
 
 ```groovy
-record MyRecord( int id, String name)
+record MyRecord( int id, String name){}
 
 splitParquet( [record: MyRecord] )
 ```
