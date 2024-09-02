@@ -17,6 +17,7 @@
 package nextflow.parquet
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import nextflow.plugin.BasePlugin
 import org.pf4j.PluginWrapper
 
@@ -24,11 +25,18 @@ import org.pf4j.PluginWrapper
  * Implements the nf-parquet plugin entry point
  *
  * @author Ben Sherman <bentshermann@gmail.com>
+ * @author Jorge Aguilera <jorge@edn.es>
  */
 @CompileStatic
+@Slf4j
 class ParquetPlugin extends BasePlugin {
 
     ParquetPlugin(PluginWrapper wrapper) {
         super(wrapper)
+        initPlugin()
+    }
+
+    private void initPlugin(){
+        log.debug "${this.class.name} plugin initialized"
     }
 }

@@ -24,6 +24,16 @@ This plugin provides two new operators:
 
 : Load each Parquet file in a source channel, emitting each row as a separate item.
 
+Default method emits every row in the parquet file as a Map.
+In case you want to read only a subset
+of fields (a projection) you can provide a java Record class with the fields you want to read
+
+```groovy
+record MyRecord( int id, String name){}
+
+splitParquet( [record: MyRecord] )
+```
+
 `toParquet( path )`
 
 : Write each item in a source channel to a Parquet file.
