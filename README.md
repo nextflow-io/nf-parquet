@@ -34,9 +34,11 @@ record MyRecord( int id, String name){}
 splitParquet( [record: MyRecord] )
 ```
 
-`toParquet( path )`
+`toParquet( path, [record: MyRecord] )`
 
 : Write each item in a source channel to a Parquet file.
+
+A `record` class is required to let know the plugin about the structure of the file
 
 ## Development
 
