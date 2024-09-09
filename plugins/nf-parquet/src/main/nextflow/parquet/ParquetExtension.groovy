@@ -1,7 +1,5 @@
 package nextflow.parquet
 
-import nextflow.plugin.extension.Factory
-import nextflow.plugin.extension.Function
 
 import java.nio.file.Path
 
@@ -18,7 +16,6 @@ import nextflow.plugin.extension.PluginExtensionPoint
 
 import com.jerolba.carpet.CarpetReader
 import com.jerolba.carpet.CarpetWriter
-import org.apache.parquet.hadoop.ParquetFileWriter
 
 /**
  * Implements extensions for reading and writing Parquet files.
@@ -51,6 +48,28 @@ class ParquetExtension extends PluginExtensionPoint {
         final onComplete = { target << Channel.STOP }
         DataflowHelper.subscribeImpl(source, [onNext: onNext, onComplete: onComplete])
 
+        return target
+    }
+
+    /**
+     * Write each item in a source channel to a Parquet file.
+     *
+     * @param source
+     * @param path
+     */
+    @Operator
+    DataflowWriteChannel toParquet(DataflowReadChannel source, String path, Map params=[:]) {
+        final target = CH.createBy(source)
+        final writer = new ParquetWriter(path, params)
+        final onNext = {
+            writer.write(it as Record)
+            target << it
+        }
+        final onComplete = {
+            writer.close()
+            target << Channel.STOP
+        }
+        DataflowHelper.subscribeImpl(source, [onNext: onNext, onComplete: onComplete])
         return target
     }
 
@@ -92,19 +111,24 @@ class ParquetExtension extends PluginExtensionPoint {
 
     }
 
-    /**
-     * Write each item in a source channel to a Parquet file.
-     *
-     * @param source
-     * @param path
-     */
-    @Operator
-    DataflowReadChannel toParquet(DataflowReadChannel source, String path) {
-        final onNext = {
-            println it
+    class ParquetWriter implements Closeable{
+        private Class<Record> clazz
+        CarpetWriter writer
+        ParquetWriter(String output, Map params){
+            if( !params.record ||!(params.record instanceof Class<Record>)) {
+                throw new IllegalArgumentException("A Record.class is required. Class provided $params.record")
+            }
+            this.clazz = params.record as Class<Record>
+            var outputStream = new FileOutputStream(output)
+            writer = new CarpetWriter<>(outputStream, this.clazz)
         }
-        DataflowHelper.subscribeImpl(source, [onNext: onNext])
-        return source
-    }
 
+        void write(Record record){
+            writer.write(record)
+        }
+
+        void close(){
+            writer.close()
+        }
+    }
 }

@@ -95,4 +95,28 @@ class PluginTest extends Dsl2Spec{
         result.val == Channel.STOP
     }
 
+    def 'should write a projection to a file'(){
+        when:
+        def pathInput = getClass().getResource('/test.parquet').toURI().path
+        def pathOutput = Files.createTempFile("", ".parquet")
+        def SCRIPT = """
+        include {splitParquet; toParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.of(1,2,3)
+                .map( { new DemoRecord(it, "The \$it record") } )
+                .toParquet("$pathOutput", [record:DemoRecord])
+                .view()
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val.id == 1
+        result.val.id == 2
+        result.val.id == 3
+        result.val == Channel.STOP
+        pathOutput.toFile().length()
+    }
+
 }
