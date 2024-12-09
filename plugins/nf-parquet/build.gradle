@@ -60,7 +60,7 @@ dependencies {
     compileOnly 'org.pf4j:pf4j:3.4.1'
 
     // add here plugins depepencies
-    implementation 'com.jerolba:carpet-record:0.1.0'
+    implementation 'com.jerolba:carpet-record:0.2.0'
 
     // test configuration
     testImplementation "io.nextflow:nextflow:$nextflowVersion"
