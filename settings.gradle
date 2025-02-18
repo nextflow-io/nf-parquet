@@ -13,6 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+pluginManagement {
+    plugins {
+        id "java"
+        id "groovy"
+        id "idea"
+        id "io.nextflow.nf-build-plugin" version "1.0.1"
+        id 'groovy-gradle-plugin'
+        id 'org.asciidoctor.jvm.convert' version '3.3.2'
+    }
+    repositories {
+        mavenCentral()
+        maven { url = 'https://plugins.gradle.org/m2/' }
+        maven { url = 'https://jitpack.io' }
+        maven { url = 'https://s3-eu-west-1.amazonaws.com/maven.seqera.io/releases' }
+        maven { url = 'https://s3-eu-west-1.amazonaws.com/maven.seqera.io/snapshots' }
+    }
+}
 
 rootProject.name = 'nf-parquet'
 include('plugins')

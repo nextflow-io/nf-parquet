@@ -17,6 +17,7 @@
 plugins {
     id "java"
     id "io.nextflow.nf-build-plugin" version "1.0.1"
+    id 'org.asciidoctor.jvm.convert'
 }
 
 ext.github_organization = 'nextflow-io'
@@ -60,6 +61,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'groovy'
     apply plugin: 'io.nextflow.nf-build-plugin'
+    apply plugin: 'org.asciidoctor.jvm.convert'
 
     repositories {
         mavenLocal()
@@ -67,6 +69,18 @@ subprojects {
     }
 
     version = metaFromManifest('Plugin-Version',file('src/resources/META-INF/MANIFEST.MF'))
+
+    asciidoctor{
+        sourceDir "docs/asciidoc"
+        resources {
+            from('docs/asciidoc/images') {
+                include '**/*.png'
+            }
+
+            into './images'
+        }
+    }
+
 
     tasks.withType(Jar) {
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
