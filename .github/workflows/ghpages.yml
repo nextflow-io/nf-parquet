@@ -33,7 +33,7 @@ jobs:
       - name: Generate
         run: ./gradlew asciidoctor
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3.0.1
         with:
           path: ./plugins/nf-parquet/build/docs/asciidoc
 
@@ -46,4 +46,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
