@@ -107,11 +107,11 @@ In this example, we'll read these records but only a subset of fields
 
 [source,groovy]
 ----
-include { fromParquet } from 'plugin/nf-parquet'
+include { splitParquet } from 'plugin/nf-parquet'
 
 import myrecords.*
 
-channel.fromParquet( "test.parquet", record:SingleRecord ) //<1>
+    channel.fromPath( params.file ).splitParquet( record:SingleRecord ) //<1>
         | view
 ----
 <1> Read only id and name (defined in SingleRecord)
