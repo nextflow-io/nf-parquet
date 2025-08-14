@@ -20,7 +20,30 @@ separated by some special character(";" for example)
 Parquet by opposite is a binary file and can't be opened with a simple editor,
 but file size is smaller and has a better read performance
 
-== SchemaS preparation
+
+== Configuration
+
+[source,groovy]
+----
+plugins {
+     id "nf-parquet"
+}
+----
+
+== Basic example
+
+[source,groovy]
+----
+include { splitParquet } from 'plugin/nf-parquet'
+
+channel.fromPath( params.file ).splitParquet()
+        | view
+----
+
+this pipeline will read the parquet file `params.file` and emit each record as a single item in the channel
+
+
+== SchemaS
 
 First thing to do (only one time meanwhile your schema doesn't change) is to define and compile the schemaS to use,
 represented as `Record` Java classes
@@ -79,27 +102,6 @@ schemas (records java) you need to execute the `javac` again
 
 TIP:: Remember to add to the repository the schemas file. Maybe you'll want to add the lib folder with the binaries
 
-
-== Configuration
-
-[source,groovy]
-----
-plugins {
-     id "nf-parquet"
-}
-----
-
-== Basic example
-
-[source,groovy]
-----
-include { splitParquet } from 'plugin/nf-parquet'
-
-channel.fromPath( params.file ).splitParquet()
-        | view
-----
-
-this pipeline will read the parquet file `params.file` and emit each record as a single item in the channel
 
 == Reading a projection
 
