@@ -1,5 +1,6 @@
 package nextflow.parquet
 
+import com.jerolba.carpet.CarpetReader
 import nextflow.Channel
 import nextflow.plugin.Plugins
 import nextflow.plugin.TestPluginDescriptorFinder
@@ -119,4 +120,75 @@ class PluginTest extends Dsl2Spec{
         pathOutput.toFile().length()
     }
 
+    def 'should parse a parquet file in raw mode using by 1'() {
+        given:
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+        channel.fromPath("$path").splitParquet(by:1) 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val == [[id: 1, name: "The 1 record"]]
+        result.val == [[id: 2, name: "The 2 record"]]
+        result.val == [[id: 3, name: "The 3 record"]]
+        result.val == Channel.STOP
+    }
+
+    def 'should parse a parquet file in raw mode using by 2'(){
+        given:
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+        channel.fromPath("$path").splitParquet(by:2) 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val == [ [id:1, name:"The 1 record"], [id:2, name:"The 2 record"] ]
+        result.val == [ [id:3, name:"The 3 record"] ]
+        result.val == Channel.STOP
+
+    }
+
+    def 'should write #total records to a file using by #by '(){
+        when:
+        def pathOutput = Files.createTempFile("", ".parquet")
+        def SCRIPT = """
+        include {splitParquet; toParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.of(1..$total)
+                .map( { new DemoRecord(it, "The \$it record") } )
+                .toParquet("$pathOutput", [record:DemoRecord, by:$by])
+                .view()
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        def values = (1..total).collect{ result.val }
+        then:
+        values.size() == total
+        result.val == Channel.STOP
+
+        when:
+        final reader = new CarpetReader(pathOutput.toFile(), Map)
+        int count = 0
+        for (def record : reader) {
+            println record
+            count++
+        }
+        then:
+        count == total
+
+        where:
+        by       | total
+        1       | 100
+        10      | 100
+        100     | 100
+    }
 }
