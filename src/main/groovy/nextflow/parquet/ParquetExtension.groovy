@@ -76,6 +76,8 @@ class ParquetExtension extends PluginExtensionPoint {
     class ParquetSplitter {
         private DataflowWriteChannel target
         private Class<Record> clazz
+        private List batchList = []
+        private int sizeBatch = 0
 
         ParquetSplitter(DataflowWriteChannel target, Map params) {
             this.target = target
@@ -85,6 +87,8 @@ class ParquetExtension extends PluginExtensionPoint {
                 }
                 this.clazz = params.record as Class<Record>
             }
+            batchList = []
+            sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
         }
 
         void apply(Object source) {
@@ -93,7 +97,15 @@ class ParquetExtension extends PluginExtensionPoint {
                 // create parquet reader
                 final reader = new CarpetReader(toFile(source), clazz ?: Map)
                 for (def record : reader) {
-                    target << record
+                    batchList << record
+                    if( batchList.size() >= sizeBatch ){
+                        target << (sizeBatch == 0 ? batchList.first() : batchList.toArray())
+                        batchList.clear()
+                    }
+                }
+                if( batchList.size() ){
+                    target << (sizeBatch == 0 ? batchList.first() : batchList.toArray())
+                    batchList.clear()
                 }
             }
             catch( IOException e ) {
@@ -114,6 +126,8 @@ class ParquetExtension extends PluginExtensionPoint {
     class ParquetWriter implements Closeable{
         private Class<Record> clazz
         CarpetWriter writer
+        private List batchList = []
+        private int sizeBatch = 0
         ParquetWriter(String output, Map params){
             if( !params.record ||!(params.record instanceof Class<Record>)) {
                 throw new IllegalArgumentException("A Record.class is required. Class provided $params.record")
@@ -121,13 +135,24 @@ class ParquetExtension extends PluginExtensionPoint {
             this.clazz = params.record as Class<Record>
             var outputStream = new FileOutputStream(output)
             writer = new CarpetWriter<>(outputStream, this.clazz)
+            batchList = []
+            sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
         }
 
         void write(Record record){
-            writer.write(record)
+            batchList << record
+            if( batchList.size() >= sizeBatch ) {
+                batchList.each { r ->
+                    writer.write(r)
+                }
+                batchList.clear()
+            }
         }
 
         void close(){
+            batchList.each { r ->
+                writer.write(r)
+            }
             writer.close()
         }
     }

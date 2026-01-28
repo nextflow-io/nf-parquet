@@ -140,3 +140,27 @@ workflow{
         | view
 }
 ----
+
+== Options
+
+== splitParquet
+
+=== record
+
+"record" option allows specifying a *Record* java class instead of a raw Map. This option can improve parsing time as the
+reader can use only a subset of the fields to read
+
+=== by
+
+"by" option allows specifying a chunk size to read records.
+
+== toParquet
+
+=== record
+
+"record" option allows specifying a *Record* java class instead of a raw Map. This option is required as the writer
+needs to know the structure of the record
+
+=== by
+
+"by" option allows specifying a chunk size to write records.
