@@ -1,7 +1,7 @@
 package nextflow.parquet
 
-
-import java.nio.file.Path
+import nextflow.parquet.impl.ParquetReader
+import nextflow.parquet.impl.ParquetWriter
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -14,8 +14,8 @@ import nextflow.extension.DataflowHelper
 import nextflow.plugin.extension.Operator
 import nextflow.plugin.extension.PluginExtensionPoint
 
-import com.jerolba.carpet.CarpetReader
-import com.jerolba.carpet.CarpetWriter
+import java.nio.file.Path
+
 
 /**
  * Implements extensions for reading and writing Parquet files.
@@ -42,10 +42,12 @@ class ParquetExtension extends PluginExtensionPoint {
     @Operator
     DataflowWriteChannel splitParquet(DataflowReadChannel source, Map params=[:]) {
         final target = CH.create()
-        final splitter = new ParquetSplitter(target, params)
+        final emitter = new EmitterRecordChannel(target)
+        final reader = new ParquetReader(emitter, params)
 
-        final onNext = { it -> splitter.apply(it) }
-        final onComplete = { target << Channel.STOP }
+        final onNext = { path -> reader.readFile(toFile(path)) }
+        final onComplete = { emitter.complete() }
+
         DataflowHelper.subscribeImpl(source, [onNext: onNext, onComplete: onComplete])
 
         return target
@@ -73,87 +75,11 @@ class ParquetExtension extends PluginExtensionPoint {
         return target
     }
 
-    class ParquetSplitter {
-        private DataflowWriteChannel target
-        private Class<Record> clazz
-        private List batchList = []
-        private int sizeBatch = 0
-
-        ParquetSplitter(DataflowWriteChannel target, Map params) {
-            this.target = target
-            if( params.record ) {
-                if (!(params.record instanceof Class<Record>)) {
-                    throw new IllegalArgumentException("A Record.class is required. Class provided $params.record")
-                }
-                this.clazz = params.record as Class<Record>
-            }
-            batchList = []
-            sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
-        }
-
-        void apply(Object source) {
-            try {
-                log.debug "Start reading $source, with projection ${clazz ?: 'raw'}"
-                // create parquet reader
-                final reader = new CarpetReader(toFile(source), clazz ?: Map)
-                for (def record : reader) {
-                    batchList << record
-                    if( batchList.size() >= sizeBatch ){
-                        target << (sizeBatch == 0 ? batchList.first() : batchList.toArray())
-                        batchList.clear()
-                    }
-                }
-                if( batchList.size() ){
-                    target << (sizeBatch == 0 ? batchList.first() : batchList.toArray())
-                    batchList.clear()
-                }
-            }
-            catch( IOException e ) {
-                throw new IllegalStateException("Error while reading Parquet file - cause: ${e.message ?: e}", e)
-            }
-        }
-
-        private File toFile(Object source){
-            return switch( source ){
-                case {it instanceof String}->Path.of(source as String).toFile()
-                case {it instanceof Path} -> (source as Path).toFile()
-                default->throw new IllegalArgumentException("Invalid input for splitParquet operator: ${source}")
-            }
-        }
-
-    }
-
-    class ParquetWriter implements Closeable{
-        private Class<Record> clazz
-        CarpetWriter writer
-        private List batchList = []
-        private int sizeBatch = 0
-        ParquetWriter(String output, Map params){
-            if( !params.record ||!(params.record instanceof Class<Record>)) {
-                throw new IllegalArgumentException("A Record.class is required. Class provided $params.record")
-            }
-            this.clazz = params.record as Class<Record>
-            var outputStream = new FileOutputStream(output)
-            writer = new CarpetWriter<>(outputStream, this.clazz)
-            batchList = []
-            sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
-        }
-
-        void write(Record record){
-            batchList << record
-            if( batchList.size() >= sizeBatch ) {
-                batchList.each { r ->
-                    writer.write(r)
-                }
-                batchList.clear()
-            }
-        }
-
-        void close(){
-            batchList.each { r ->
-                writer.write(r)
-            }
-            writer.close()
+    private File toFile(Object source) {
+        return switch (source) {
+            case { it instanceof String } -> Path.of(source as String).toFile()
+            case { it instanceof Path } -> (source as Path).toFile()
+            default -> throw new IllegalArgumentException("Invalid input for splitParquet operator: ${source}")
         }
     }
 }
