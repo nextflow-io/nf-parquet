@@ -1,8 +1,5 @@
 package nextflow.parquet
 
-import nextflow.parquet.impl.ParquetReader
-import nextflow.parquet.impl.ParquetWriter
-
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowReadChannel
@@ -11,11 +8,12 @@ import nextflow.Channel
 import nextflow.Session
 import nextflow.extension.CH
 import nextflow.extension.DataflowHelper
+import nextflow.extension.SplitOpExt
+import nextflow.parquet.impl.ParquetWriter
 import nextflow.plugin.extension.Operator
 import nextflow.plugin.extension.PluginExtensionPoint
-
-import java.nio.file.Path
-
+import nextflow.splitter.ParquetSplitter
+import nextflow.splitter.SplitterFactory
 
 /**
  * Implements extensions for reading and writing Parquet files.
@@ -41,17 +39,16 @@ class ParquetExtension extends PluginExtensionPoint {
      */
     @Operator
     DataflowWriteChannel splitParquet(DataflowReadChannel source, Map params=[:]) {
-        final target = CH.create()
-        final emitter = new EmitterRecordChannel(target)
-        final reader = new ParquetReader(emitter, params)
-
-        final onNext = { path -> reader.readFile(toFile(path)) }
-        final onComplete = { emitter.complete() }
-
-        DataflowHelper.subscribeImpl(source, [onNext: onNext, onComplete: onComplete])
-
-        return target
+        def operator = new SplitOpExt(source, "split", params)
+        operator.apply()
     }
+
+    @Operator
+    DataflowWriteChannel countParquet(DataflowReadChannel source, Map params=[:]) {
+        def splitter = new ParquetSplitter()
+        SplitterFactory.countOverChannel(source, splitter, params)
+    }
+
 
     /**
      * Write each item in a source channel to a Parquet file.
@@ -75,11 +72,4 @@ class ParquetExtension extends PluginExtensionPoint {
         return target
     }
 
-    private File toFile(Object source) {
-        return switch (source) {
-            case { it instanceof String } -> Path.of(source as String).toFile()
-            case { it instanceof Path } -> (source as Path).toFile()
-            default -> throw new IllegalArgumentException("Invalid input for splitParquet operator: ${source}")
-        }
-    }
 }

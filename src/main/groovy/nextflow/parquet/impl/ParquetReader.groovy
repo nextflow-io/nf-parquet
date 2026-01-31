@@ -13,12 +13,10 @@ import groovy.util.logging.Slf4j
 @Slf4j
 @CompileStatic
 class ParquetReader {
-    private ReadRecordAware recordAware
+    private RecordConsumer recordAware
     private Class<Record> clazz
-    private List batchList = []
-    private int sizeBatch = 0
 
-    ParquetReader(ReadRecordAware recordAware, Map params) {
+    ParquetReader(RecordConsumer recordAware, Map params) {
         if( recordAware == null){
             throw new IllegalArgumentException("RecordAware is required")
         }
@@ -28,7 +26,6 @@ class ParquetReader {
 
     private List<String> ARGUMENTS = [
             'record',
-            'by'
     ]
 
     void parseArgs(Map params){
@@ -43,24 +40,19 @@ class ParquetReader {
             }
             this.clazz = params.record as Class<Record>
         }
-        sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
     }
 
     void readFile(File source) {
         try {
             log.debug "Start reading $source, with projection ${clazz ?: 'raw'}"
 
+            boolean stopped = false
             final reader = new CarpetReader(source, clazz ?: Map)
             for (def record : reader) {
-                batchList.add(record)
-                if (batchList.size() >= sizeBatch) {
-                    recordAware.recordRead( sizeBatch == 0 ? batchList.first() : batchList.toArray() )
-                    batchList.clear()
+                stopped = !recordAware.wantMore(record )
+                if( stopped ){
+                    break
                 }
-            }
-            if (batchList.size()) {
-                recordAware.recordRead( sizeBatch == 0 ? batchList.first() : batchList.toArray() )
-                batchList.clear()
             }
         }
         catch (IOException e) {

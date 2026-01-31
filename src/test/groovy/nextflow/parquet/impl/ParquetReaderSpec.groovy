@@ -5,32 +5,34 @@ import spock.lang.Specification
 
 class ParquetReaderSpec extends Specification{
 
-
-    def 'should validate parameters'(){
-        given:
-        def aware = new ReadRecordAware() {
+    RecordConsumer newAware(List content) {
+        new RecordConsumer() {
             @Override
-            void recordRead(Object row) {
+            boolean wantMore(Object row) {
+                content.add(row)
+                false
             }
         }
+    }
 
+    def 'should validate parameters'(){
         when:
         new ParquetReader(null, [:])
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [illegalParameter: 1])
+        new ParquetReader(newAware(), [illegalParameter: 1])
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [by: 1])
+        new ParquetReader(newAware(), [by: 1])
         then:
-        true
+        thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [record: DemoRecord])
+        new ParquetReader(newAware(), [record: DemoRecord])
         then:
         true
     }
@@ -40,13 +42,7 @@ class ParquetReaderSpec extends Specification{
         given:
         def path = getClass().getResource('/test.parquet').toURI().path
         def content = []
-        def aware = new ReadRecordAware() {
-            @Override
-            void recordRead(Object row) {
-                content.add(row)
-            }
-        }
-        def reader = new ParquetReader(aware, [record: DemoRecord])
+        def reader = new ParquetReader(newAware(content), [record: DemoRecord])
         when:
         reader.readFile( new File(path) )
 
@@ -59,39 +55,13 @@ class ParquetReaderSpec extends Specification{
         given:
         def path = getClass().getResource('/test.parquet').toURI().path
         def content = []
-        def aware = new ReadRecordAware() {
-            @Override
-            void recordRead(Object row) {
-                content.add(row)
-            }
-        }
-        def reader = new ParquetReader(aware, [:])
+        def reader = new ParquetReader(newAware(content), [:])
         when:
         reader.readFile( new File(path) )
 
         then:
         content.size() == 1
         content[0] instanceof  Map
-    }
-
-    def 'should read a parquet file in chunks'(){
-        given:
-        def path = getClass().getResource('/multiple.parquet').toURI().path
-        def content = []
-        def aware = new ReadRecordAware() {
-            @Override
-            void recordRead(Object row) {
-                content.add(row)
-            }
-        }
-        def reader = new ParquetReader(aware, [by:1, record: DemoRecord])
-        when:
-        reader.readFile( new File(path) )
-
-        then:
-        content.size() == 3
-        content[0] instanceof Object[]
-        content[0][0] instanceof DemoRecord
     }
 
 }

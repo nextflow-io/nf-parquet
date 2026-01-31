@@ -141,7 +141,7 @@ workflow{
 }
 ----
 
-== Options
+== Operators
 
 == splitParquet
 
@@ -154,6 +154,29 @@ reader can use only a subset of the fields to read
 
 "by" option allows specifying a chunk size to read records.
 
+WARNING:: Chunks are stored in memory by default. When splitting large files, specify `file: true` to save the chunks
+into files to avoid running out of memory. See the list of options below for details.
+
+=== elem
+
+The index of the element to split when the source items are lists or tuples (default: first file object or first element).
+
+=== file
+
+When true, it saves each split to a file. Use a string instead of true value to create split files with a specific name
+(split index number is automatically added).
+Finally, set this attribute to an existing directory, to save the split files into the specified directory.
+In this case, the objects emitted are the PathS of every file
+
+=== each
+
+with `each` option you can provide a closure to be called per each row readed
+
+== countParquet
+
+Similar to splitParquet, it emits the number of the records in the parquet file
+
+
 == toParquet
 
 === record
@@ -163,4 +186,6 @@ needs to know the structure of the record
 
 === by
 
-"by" option allows specifying a chunk size to write records.
+"by" option allows specifying a chunk size to write records, so I/O operations performance can be improved
+
+WARNING:: Chunks are stored in memory, try to use a good value to avoid memory exceptions.

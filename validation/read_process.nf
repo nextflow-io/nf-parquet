@@ -1,8 +1,5 @@
 include { splitParquet } from 'plugin/nf-parquet'
 
-import myrecords.*
-
-
 process processParquetChunk {
     input:
     val(input_chunk_parquet)
@@ -10,13 +7,13 @@ process processParquetChunk {
     stdout 
     script:
     """
-        echo ${input_chunk_parquet}
+        echo ${input_chunk_parquet.size()}
     """
 }
 
 workflow{
 
-channel.fromPath("*.parquet").splitParquet(by:100)
+channel.fromPath("data/customs.parquet").splitParquet(by:100)
         | processParquetChunk
         | view
 
