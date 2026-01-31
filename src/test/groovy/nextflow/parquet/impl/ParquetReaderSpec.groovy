@@ -3,15 +3,15 @@ package nextflow.parquet.impl
 import nextflow.parquet.DemoRecord
 import spock.lang.Specification
 
-import java.nio.file.Path
-
 class ParquetReaderSpec extends Specification{
 
-    def aware = new RecordConsumer() {
-        @Override
-        boolean next(Object row) {
-            content.add(row)
-            true
+    RecordConsumer newAware(List content) {
+        new RecordConsumer() {
+            @Override
+            boolean wantMore(Object row) {
+                content.add(row)
+                false
+            }
         }
     }
 
@@ -22,17 +22,17 @@ class ParquetReaderSpec extends Specification{
         thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [illegalParameter: 1])
+        new ParquetReader(newAware(), [illegalParameter: 1])
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [by: 1])
+        new ParquetReader(newAware(), [by: 1])
         then:
-        true
+        thrown(IllegalArgumentException)
 
         when:
-        new ParquetReader(aware, [record: DemoRecord])
+        new ParquetReader(newAware(), [record: DemoRecord])
         then:
         true
     }
@@ -42,7 +42,7 @@ class ParquetReaderSpec extends Specification{
         given:
         def path = getClass().getResource('/test.parquet').toURI().path
         def content = []
-        def reader = new ParquetReader(aware, [record: DemoRecord])
+        def reader = new ParquetReader(newAware(content), [record: DemoRecord])
         when:
         reader.readFile( new File(path) )
 
@@ -55,48 +55,13 @@ class ParquetReaderSpec extends Specification{
         given:
         def path = getClass().getResource('/test.parquet').toURI().path
         def content = []
-        def reader = new ParquetReader(aware, [:])
+        def reader = new ParquetReader(newAware(content), [:])
         when:
         reader.readFile( new File(path) )
 
         then:
         content.size() == 1
         content[0] instanceof  Map
-    }
-
-    def 'should read a parquet file in chunks'(){
-        given:
-        def path = getClass().getResource('/multiple.parquet').toURI().path
-        def content = []
-        def reader = new ParquetReader(aware, [by:1, record: DemoRecord])
-        when:
-        reader.readFile( new File(path) )
-
-        then:
-        content.size() == 3
-        content[0] instanceof Object[]
-        content[0][0] instanceof DemoRecord
-    }
-
-    def 'should split a parquet file in chunks files'(){
-        given:
-        def path = getClass().getResource('/multiple.parquet').toURI().path
-        def content = []
-        def reader = new ParquetReader(aware, [by:1, record: DemoRecord, file:true])
-        when:
-        reader.readAndSplitFile( new File(path) )
-
-        then:
-        content.size() == 3
-        content[0] instanceof Path
-        new File("multiple_0.parquet").exists()
-        new File("multiple_1.parquet").exists()
-        new File("multiple_2.parquet").exists()
-
-        cleanup:
-        new File("multiple_0.parquet").deleteOnExit()
-        new File("multiple_1.parquet").deleteOnExit()
-        new File("multiple_2.parquet").deleteOnExit()
     }
 
 }

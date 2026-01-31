@@ -67,20 +67,11 @@ class ParquetSplitter extends AbstractSplitter<File> {
             return path.toFile()
         }
 
-        if( obj instanceof byte[] ) {
-            def bais= new ByteArrayInputStream((byte[]) obj)
-            def path = Files.createTempFile("",".parquet")
-            path.deleteOnExit()
-            Files.copy(bais, path)
-            sourceFile = path
-            return path.toFile()
-        }
-
         if( obj instanceof CharSequence ){
-            def bais= new ByteArrayInputStream(obj.toString().bytes)
             def path = Files.createTempFile("",".parquet")
             path.deleteOnExit()
-            Files.copy(bais, path)
+            def source = Path.of("$obj")
+            FilesEx.copyTo(source, path)
             sourceFile = path
             return path.toFile()
         }
@@ -112,11 +103,11 @@ class ParquetSplitter extends AbstractSplitter<File> {
         try {
             final aware = new RecordConsumer() {
                 @Override
-                boolean next(Object record ) {
+                boolean wantMore(Object record ) {
                     result = processChunk( record )
                     if (limitReached())
-                        return true
-                    false
+                        return false
+                    true
                 }
             }
             counter.reset()

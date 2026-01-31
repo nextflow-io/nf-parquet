@@ -15,8 +15,6 @@ import groovy.util.logging.Slf4j
 class ParquetReader {
     private RecordConsumer recordAware
     private Class<Record> clazz
-    private List batchList = []
-    private int sizeBatch = 0
 
     ParquetReader(RecordConsumer recordAware, Map params) {
         if( recordAware == null){
@@ -28,7 +26,6 @@ class ParquetReader {
 
     private List<String> ARGUMENTS = [
             'record',
-            'by'
     ]
 
     void parseArgs(Map params){
@@ -43,7 +40,6 @@ class ParquetReader {
             }
             this.clazz = params.record as Class<Record>
         }
-        sizeBatch = params.containsKey('by') && "$params.by".isNumber() ? params.by as int : 0
     }
 
     void readFile(File source) {
@@ -53,20 +49,10 @@ class ParquetReader {
             boolean stopped = false
             final reader = new CarpetReader(source, clazz ?: Map)
             for (def record : reader) {
-                batchList.add(record)
-                if (batchList.size() >= sizeBatch) {
-                    stopped = recordAware.next( sizeBatch == 0 ? batchList.first() : batchList.toArray() )
-                    batchList.clear()
-                    if( stopped ){
-                        break
-                    }
+                stopped = !recordAware.wantMore(record )
+                if( stopped ){
+                    break
                 }
-            }
-            if (batchList.size()) {
-                if( !stopped ) {
-                    recordAware.next(sizeBatch == 0 ? batchList.first() : batchList.toArray())
-                }
-                batchList.clear()
             }
         }
         catch (IOException e) {

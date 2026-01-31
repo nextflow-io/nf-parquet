@@ -2,6 +2,6 @@ package nextflow.parquet.impl
 
 interface RecordConsumer {
 
-    boolean next(Object row )
+    boolean wantMore(Object row )
 
 }
