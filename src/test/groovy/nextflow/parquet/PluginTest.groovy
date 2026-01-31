@@ -132,9 +132,9 @@ class PluginTest extends Dsl2Spec{
         and:
         def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
         then:
-        result.val == [[id: 1, name: "The 1 record"]]
-        result.val == [[id: 2, name: "The 2 record"]]
-        result.val == [[id: 3, name: "The 3 record"]]
+        result.val == [id: 1, name: "The 1 record"]
+        result.val == [id: 2, name: "The 2 record"]
+        result.val == [id: 3, name: "The 3 record"]
         result.val == Channel.STOP
     }
 
@@ -151,6 +151,123 @@ class PluginTest extends Dsl2Spec{
         then:
         result.val == [ [id:1, name:"The 1 record"], [id:2, name:"The 2 record"] ]
         result.val == [ [id:3, name:"The 3 record"] ]
+        result.val == Channel.STOP
+
+    }
+
+    def 'should chunk a parquet file using file as string'(){
+        given:
+        def dir = Files.createTempDirectory("")
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.fromPath("$path")
+                .splitParquet(by:2, file:'${dir.toAbsolutePath()}', record:DemoRecord)
+ 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val instanceof Path
+        result.val instanceof Path
+        result.val == Channel.STOP
+
+    }
+
+    def 'should chunk a parquet file using file as boolean'(){
+        given:
+        def dir = Files.createTempDirectory("")
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.fromPath("$path")
+                .splitParquet(by:2, file:true, record:DemoRecord)
+ 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val instanceof Path
+        result.val instanceof Path
+        result.val == Channel.STOP
+
+    }
+
+    def 'should chunk only 2 records from parquet file using limit'(){
+        given:
+        def dir = Files.createTempDirectory("")
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.fromPath("$path")
+                .splitParquet(limit:2, by:2, file:true, record:DemoRecord)
+ 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val instanceof Path
+        result.val == Channel.STOP
+
+    }
+
+    def 'should parse a parquet file specified in elem'(){
+        given:
+        def dir = Files.createTempDirectory("")
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.fromPath("$path")
+                .map{ p -> [ 1, p] }
+                .splitParquet( elem: 1 )
+ 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val == [1, [id:1, name:'The 1 record']]
+        result.val == [1, [id:2, name:'The 2 record']]
+        result.val == [1, [id:3, name:'The 3 record']]
+        result.val == Channel.STOP
+
+    }
+
+    def 'should transform the records of the parquet file'(){
+        given:
+        def dir = Files.createTempDirectory("")
+        def path = getClass().getResource('/multiple.parquet').toURI().path
+        when:
+        def SCRIPT = """
+        include {splitParquet} from 'plugin/nf-parquet'
+
+        import nextflow.parquet.DemoRecord
+
+        channel.fromPath("$path")                
+                .splitParquet( each:{ r-> r.name } )
+ 
+        """.toString()
+        and:
+        def result = new MockScriptRunner([:]).setScript(SCRIPT).execute()
+        then:
+        result.val == 'The 1 record'
+        result.val == 'The 2 record'
+        result.val == 'The 3 record'
         result.val == Channel.STOP
 
     }

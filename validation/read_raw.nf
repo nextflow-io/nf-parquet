@@ -2,5 +2,5 @@ include { splitParquet } from 'plugin/nf-parquet'
 
 import myrecords.*
 
-channel.fromPath("*.parquet").splitParquet(by:1)
+channel.fromPath("data/presidents.parquet").splitParquet(by:1)
         | view

@@ -47,9 +47,7 @@ class ParquetWriter implements Closeable {
     void write(Record record) {
         batchList << record
         if (batchList.size() >= sizeBatch) {
-            batchList.each { r ->
-                writer.write(r)
-            }
+            writer.write(batchList)
             batchList.clear()
         }
     }
