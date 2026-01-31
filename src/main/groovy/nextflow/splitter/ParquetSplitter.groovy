@@ -5,6 +5,7 @@ import groovy.transform.InheritConstructors
 import groovy.util.logging.Slf4j
 import nextflow.Global
 import nextflow.Nextflow
+import nextflow.extension.FilesEx
 import nextflow.parquet.impl.ParquetReader
 import nextflow.parquet.impl.RecordConsumer
 import nextflow.util.CacheHelper
@@ -58,13 +59,11 @@ class ParquetSplitter extends AbstractSplitter<File> {
         if( obj instanceof File )
             return (File)obj
 
-        if( obj instanceof Path )
-            return ((Path)obj).toFile()
-
         if( obj instanceof InputStream ) {
             def path = Files.createTempFile("",".parquet")
             path.deleteOnExit()
             Files.copy((InputStream) obj, path)
+            sourceFile = path
             return path.toFile()
         }
 
@@ -73,6 +72,7 @@ class ParquetSplitter extends AbstractSplitter<File> {
             def path = Files.createTempFile("",".parquet")
             path.deleteOnExit()
             Files.copy(bais, path)
+            sourceFile = path
             return path.toFile()
         }
 
@@ -81,8 +81,22 @@ class ParquetSplitter extends AbstractSplitter<File> {
             def path = Files.createTempFile("",".parquet")
             path.deleteOnExit()
             Files.copy(bais, path)
+            sourceFile = path
             return path.toFile()
         }
+
+        if( obj instanceof Path && (obj as Path).toUriString().startsWith("s3://") ) {
+            def path = Files.createTempFile("",".parquet")
+            path.deleteOnExit()
+            def source = obj as Path
+            FilesEx.copyTo(source, path)
+            sourceFile = path
+            return path.toFile()
+        }
+
+        if( obj instanceof Path )
+            return ((Path)obj).toFile()
+
         throw new IllegalAccessException("Object of class '${obj.class.name}' does not support 'splitter' methods")
     }
 
