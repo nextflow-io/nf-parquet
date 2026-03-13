@@ -10,6 +10,7 @@ import nextflow.parquet.impl.ParquetReader
 import nextflow.parquet.impl.RecordConsumer
 import nextflow.util.CacheHelper
 
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -76,17 +77,18 @@ class ParquetSplitter extends AbstractSplitter<File> {
             return path.toFile()
         }
 
-        if( obj instanceof Path && (obj as Path).toUriString().startsWith("s3://") ) {
-            def path = Files.createTempFile("",".parquet")
-            path.deleteOnExit()
+        if( obj instanceof Path ) {
             def source = obj as Path
-            FilesEx.copyTo(source, path)
-            sourceFile = path
-            return path.toFile()
+            // For any non-local path (S3, GCS, Azure, etc.), copy to local temp file first
+            if( source.getFileSystem() != FileSystems.getDefault() ) {
+                def path = Files.createTempFile("", ".parquet")
+                path.deleteOnExit()
+                FilesEx.copyTo(source, path)
+                sourceFile = path
+                return path.toFile()
+            }
+            return source.toFile()
         }
-
-        if( obj instanceof Path )
-            return ((Path)obj).toFile()
 
         throw new IllegalAccessException("Object of class '${obj.class.name}' does not support 'splitter' methods")
     }
