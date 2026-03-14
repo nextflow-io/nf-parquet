@@ -44,22 +44,13 @@ else
 	./gradlew ${mm}test --tests ${class}
 endif
 
-#
-# generate build zips under build/plugins
-# you can install the plugin copying manually these files to $HOME/.nextflow/plugins
-#
-buildPlugins:
-	./gradlew copyPluginZip
+e2e:
+	./gradlew installPlugin -Pversion=99.99.99
+	cd src/e2e; PARQUET_PLUGIN_VERSION=99.99.99 ./nf-test test ${test}
 
 #
-# Upload JAR artifacts to Maven Central
+# Install last version into $HOME/.nextflow/plugins
 #
-upload:
-	./gradlew upload
+installPlugin:
+	./gradlew installPlugin
 
-
-upload-plugins:
-	./gradlew plugins:upload
-
-publish-index:
-	./gradlew plugins:publishIndex

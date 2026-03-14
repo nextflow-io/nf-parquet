@@ -1,0 +1,25 @@
+nextflow_pipeline {
+
+    name "Test write custom"
+    script "workflows/write_custom.nf"
+
+    test("Should run without failures") {
+
+        setup(){
+            new File('work/demo.parquet')?.delete()
+        }
+        when{
+            params{
+                numrecords = 1500
+            }
+        }
+        then {
+            assert workflow.success
+            assert snapshot(workflow.stdout).match()
+            assert path("$workDir/demo.parquet").parquet
+            assert path("$workDir/demo.parquet").parquet.rowCount == 1500
+        }
+
+    }
+
+}

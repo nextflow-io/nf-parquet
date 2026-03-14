@@ -1,0 +1,15 @@
+nextflow_pipeline {
+
+    name "Test Count"
+    script "workflows/count.nf"
+
+    test("Should run without failures") {
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.stdout).match()
+        }
+
+    }
+
+}

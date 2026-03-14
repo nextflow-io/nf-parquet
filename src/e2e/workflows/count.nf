@@ -1,5 +1,5 @@
 include { countParquet } from 'plugin/nf-parquet'
 
-channel.fromPath("data/*.parquet")
+channel.fromPath("${baseDir}/data/presidents.parquet")
         .countParquet( )
         | view

@@ -1,0 +1,15 @@
+nextflow_pipeline {
+
+    name "Test Chunk"
+    script "workflows/chunk.nf"
+
+    test("Should run without failures") {
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.stdout).match()
+        }
+
+    }
+
+}
