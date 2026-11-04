@@ -1,0 +1,29 @@
+{
+    "Should run without failures": {
+        "content": [
+            [
+                "THE STATE (NCT) OF DELHI  versus KHIMJI BHAI JADEJA",
+                "DHARMENDRA SHARMA versus M. ARUNMOZHI & ANR.",
+                "REGENTA HOTELS PRIVATE LIMITED versus M/S HOTEL GRAND CENTRE POINT AND OTHERS",
+                "BHADRA INTERNATIONAL (INDIA) PVT. LTD. & ORS. versus AIRPORTS AUTHORITY OF INDIA",
+                "THE PROPERTY COMPANY (P) LTD. versus ROHINTEN DADDY MAZDA",
+                "ARVIND DHAM versus DIRECTORATE OF ENFORCEMENT",
+                "MOTILAL OSWAL FINANCIAL SERVICES LIMITED versus SANTOSH CORDEIRO AND ANOTHER",
+                "UNION OF INDIA versus G. KIRAN & ORS.",
+                "NIRBHAY SINGH SULIYA versus STATE OF MADHYA PRADESH & ANR.",
+                "S. NAGESH versus SHOBHA S. ARADHYA",
+                "UV ASSET RECONSTRUCTION COMPANY LIMITED versus ELECTROSTEEL CASTINGS LIMITED",
+                "THE KARNATAKA LOKAYUKTHA BAGALKOTE DISTRICT, BAGALKOT  versus CHANDRASHEKAR & ANR.",
+                "C. VELUSAMY versus K INDHERA",
+                "THE STATE OF TAMIL NADU versus THE STATE OF KARNATAKA & ANR",
+                "RAJIA BEGUM versus BARNALI MUKHERJEE",
+                "SANDEEP SINGH BORA versus NARENDRA SINGH DEOPA & ORS."
+            ]
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2026-03-14T10:09:16.362701725"
+    }
+}

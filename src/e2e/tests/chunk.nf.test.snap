@@ -1,0 +1,17 @@
+{
+    "Should run without failures": {
+        "content": [
+            [
+                "customs.1.parquet",
+                "customs.2.parquet",
+                "customs.3.parquet",
+                "customs.4.parquet"
+            ]
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2026-03-14T10:04:01.725684107"
+    }
+}

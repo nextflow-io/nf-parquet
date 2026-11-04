@@ -1,0 +1,15 @@
+nextflow_pipeline {
+
+    name "Test read s3"
+    script "workflows/read_s3.nf"
+
+    test("Should run without failures") {
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.stdout).match()
+        }
+
+    }
+
+}

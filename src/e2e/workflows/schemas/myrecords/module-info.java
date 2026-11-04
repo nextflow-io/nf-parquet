@@ -1,0 +1,3 @@
+module myrecords {
+    opens myrecords;
+}

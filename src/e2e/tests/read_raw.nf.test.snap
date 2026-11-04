@@ -1,0 +1,15 @@
+{
+    "Should run without failures": {
+        "content": [
+            [
+                "{id=1010101, job={company=USA, position=POTUS, years=3}, address={street=1600 Pennsylvania Av., zip=20500, city=Washington}}",
+                "{id=1010102, job={company=Spain, position=SOTUS, years=12}, address={street=Moncloa., zip=28000, city=Madrid}}"
+            ]
+        ],
+        "meta": {
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.0"
+        },
+        "timestamp": "2026-03-14T10:09:03.866396854"
+    }
+}

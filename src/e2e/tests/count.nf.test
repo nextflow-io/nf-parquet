@@ -1,0 +1,29 @@
+nextflow_pipeline {
+
+    name "Test Count"
+    script "workflows/count.nf"
+
+    test("Should run without failures") {
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.stdout).match()
+        }
+
+    }
+
+    test("Should count an http file") {
+
+        when{
+            params{
+                url = 'https://github.com/supandatavizz/yellow-trip-parquet/raw/refs/heads/main/yellow_tripdata_2023-01.parquet'
+            }
+        }
+        then {
+            assert workflow.success
+            assert workflow.stdout[0] as int == 3066766
+        }
+
+    }
+
+}
